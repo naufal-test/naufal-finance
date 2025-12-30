@@ -11,7 +11,6 @@
 *{box-sizing:border-box;font-family:Inter,Segoe UI,Arial}
 body{margin:0;background:#0d0d0d;color:#fff}
 header{background:var(--grad);padding:16px 24px;box-shadow:0 4px 20px rgba(0,0,0,.5);position:sticky;top:0;z-index:1000}
-headers: { "Content-Type": "application/json" }
 header h1{margin:0;font-size:20px}
 main{padding:24px;max-width:1200px;margin:auto}
 .card{background:#161616;border-radius:14px;padding:20px;margin-bottom:20px;box-shadow:0 10px 30px rgba(0,0,0,.4)}
@@ -90,94 +89,93 @@ th,td{padding:10px;border-bottom:1px solid #333;font-size:14px}
 </main>
 
 <script>
-const API = "https://script.google.com/macros/s/AKfycbyxg52cKccawIYnZaizBLgxD_OizjAOWYtJGFPTx4zF48Eq0wS8D_rDpTeTNxE_I5Bf/exec";
+const API = "https://script.google.com/macros/s/AKfycbwYWjQ1HXIOleQrAZiJdGdMaZa2HLRrI-ISwTKWlXT9AC8wvBbXDCpPEkVEjM9shkFh/exec";
 let allData = [];
 let chart;
 
 function loadData(){
   fetch(API)
-    .then(res => res.json())
-    .then(data => {
-      allData = data;
+    .then(r => r.json())
+    .then(d => {
+      allData = d;
       render();
     });
 }
 
 function render(){
-  const tbody = document.getElementById('history');
+  const tbody = document.getElementById("history");
   tbody.innerHTML = "";
 
-  let totalIn=0,totalOut=0;
-  let saldoCash=0,saldoGopay=0,saldoTransport=0;
-  let kategoriOut={};
+  let tIn=0,tOut=0,cash=0,gopay=0,trans=0;
+  let catOut={};
 
-  allData.forEach((d, index)=>{
-    const tr=document.createElement('tr');
-    tr.innerHTML=`
-      <td>${d.tanggal}</td>
-      <td>Rp${d.nominal}</td>
-      <td>${d.kategori}</td>
-      <td>${d.deskripsi}</td>
-      <td><button onclick="hapusItem(${index})">❌</button></td>
-    `;
-    tbody.appendChild(tr);
+  allData.forEach(d=>{
+    tbody.innerHTML += `
+      <tr>
+        <td>${d.tanggal}</td>
+        <td>Rp${d.nominal}</td>
+        <td>${d.kategori}</td>
+        <td>${d.deskripsi}</td>
+        <td><button onclick="hapusItem(${d.id})">❌</button></td>
+      </tr>`;
 
-    if(d.kategori.includes('Out')){
-      totalOut+=d.nominal;
-      kategoriOut[d.kategori]=(kategoriOut[d.kategori]||0)+d.nominal;
-    } else totalIn+=d.nominal;
+    if(d.kategori.includes("Out")){
+      tOut+=d.nominal;
+      catOut[d.kategori]=(catOut[d.kategori]||0)+d.nominal;
+    } else tIn+=d.nominal;
 
-    if(d.kategori.includes('Cash')) d.kategori.includes('Out')?saldoCash-=d.nominal:saldoCash+=d.nominal;
-    if(d.kategori.includes('Gopay Transport')) d.kategori.includes('Out')?saldoTransport-=d.nominal:saldoTransport+=d.nominal;
-    if(d.kategori.includes('Gopay')&&!d.kategori.includes('Transport')) d.kategori.includes('Out')?saldoGopay-=d.nominal:saldoGopay+=d.nominal;
+    if(d.kategori.includes("Cash")) d.kategori.includes("Out")?cash-=d.nominal:cash+=d.nominal;
+    if(d.kategori.includes("Gopay Transport")) d.kategori.includes("Out")?trans-=d.nominal:trans+=d.nominal;
+    if(d.kategori.includes("Gopay")&&!d.kategori.includes("Transport")) d.kategori.includes("Out")?gopay-=d.nominal:gopay+=d.nominal;
   });
 
-  totalIn.innerText='Rp'+totalIn;
-  totalOut.innerText='Rp'+totalOut;
-  saldoTotal.innerText='Rp'+(totalIn-totalOut);
-  saldoCash.innerText='Rp'+saldoCash;
-  saldoGopay.innerText='Rp'+saldoGopay;
-  saldoTransport.innerText='Rp'+saldoTransport;
+  totalIn.innerText="Rp"+tIn;
+  totalOut.innerText="Rp"+tOut;
+  saldoTotal.innerText="Rp"+(tIn-tOut);
+  saldoCash.innerText="Rp"+cash;
+  saldoGopay.innerText="Rp"+gopay;
+  saldoTransport.innerText="Rp"+trans;
 
   if(chart) chart.destroy();
-  chart=new Chart(document.getElementById('chart'),{
-    type:'pie',
-    data:{labels:Object.keys(kategoriOut),datasets:[{data:Object.values(kategoriOut)}]}
+  chart=new Chart(document.getElementById("chart"),{
+    type:"pie",
+    data:{labels:Object.keys(catOut),datasets:[{data:Object.values(catOut)}]}
   });
 }
 
-document.getElementById('financeForm').addEventListener('submit',e=>{
+financeForm.addEventListener("submit",e=>{
   e.preventDefault();
-  fetch(API, {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify({
-    action: "add",
-    tanggal: tanggal.value,
-    nominal: Number(nominal.value),
-    kategori: kategori.value,
-    deskripsi: deskripsi.value
-  })
-})
-.then(res => res.json())
-.then(() => {
-  e.target.reset();
-  loadData();
-})
-.catch(err => alert("Gagal menyimpan: " + err));
+  fetch(API,{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      action:"add",
+      tanggal:tanggal.value,
+      nominal:+nominal.value,
+      kategori:kategori.value,
+      deskripsi:deskripsi.value,
+      bulan:new Date().toISOString().slice(0,7)
+    })
+  }).then(()=>{
+    e.target.reset();
+    loadData();
+  });
+});
 
-
-function hapusItem(index){
+function hapusItem(id){
   if(!confirm("Hapus data ini?")) return;
-  fetch(`${API}?delete=${index}`,{method:'POST'})
-    .then(()=>loadData());
+  fetch(API,{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({action:"delete",id})
+  }).then(loadData);
 }
 
 loadData();
 </script>
 
+
 </body>
 </html>
+
 
