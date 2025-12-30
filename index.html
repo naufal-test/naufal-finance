@@ -86,6 +86,19 @@ th,td{padding:10px;border-bottom:1px solid #333;font-size:14px}
 </main>
 
 <script>
+fetch('URL_API_KAMU')
+  .then(res => res.json())
+  .then(data => {
+    allData = {};
+    data.forEach(d => {
+      if (!allData[d.bulan]) allData[d.bulan] = [];
+      allData[d.bulan].push(d);
+    });
+    loadMonths();
+    render();
+  });
+
+  
 function getMonth(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')}
 let allData=JSON.parse(localStorage.getItem('financeData'))||{};
 let currentMonth=getMonth();
@@ -158,11 +171,22 @@ function hapusItem(index){
   if(!confirm("Hapus data ini?")) return;
 
   allData[currentMonth].splice(index, 1);
-  localStorage.setItem('financeData', JSON.stringify(allData));
+  fetch('https://script.google.com/macros/s/AKfycbxfBh2z29bUTda8sZtoxho6qrs_me0W0T3pVciHz9FoG7pFhr2akt84VV-s4w15eYPS/exec', {
+  method: 'POST',
+  body: JSON.stringify({
+    tanggal: tanggal.value,
+    nominal: Number(nominal.value),
+    kategori: kategori.value,
+    deskripsi: deskripsi.value,
+    bulan: currentMonth
+  })
+}).then(() => {
   render();
-}
+});
+
 
 
 </script>
 </body>
+
 </html>
