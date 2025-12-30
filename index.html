@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Naufal Finance</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root{--grad:linear-gradient(135deg,#6a11cb,#000)}
+*{box-sizing:border-box;font-family:Inter,Segoe UI,Arial}
+body{margin:0;background:#0d0d0d;color:#fff}
+header{background:var(--grad);padding:16px 24px;box-shadow:0 4px 20px rgba(0,0,0,.5);position:sticky;top:0;z-index:1000}
+header h1{margin:0;font-size:20px}
+main{padding:24px;max-width:1200px;margin:auto}
+.card{background:#161616;border-radius:14px;padding:20px;margin-bottom:20px;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+.card h2{margin-top:0}
+form{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+input,select,button{padding:10px;border-radius:8px;border:none;outline:none}
+input,select{background:#222;color:#fff}
+button{background:var(--grad);color:#fff;font-weight:600;cursor:pointer}
+.summary-main{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:16px}
+.summary-main b{font-size:28px}
+.in{color:#4ade80}
+.out{color:#f87171}
+.summary-sub{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.summary-sub div{background:#1f1f1f;padding:14px;border-radius:12px}
+canvas{max-width:100%}
+table{width:100%;border-collapse:collapse;margin-top:10px}
+th,td{padding:10px;border-bottom:1px solid #333;font-size:14px}
+</style>
+</head>
+<body>
+<header><h1>Naufal Finance</h1></header>
+<main>
+
+<div class="card">
+<h2>Input Keuangan</h2>
+<form id="financeForm">
+<input type="date" id="tanggal" required>
+<input type="number" id="nominal" placeholder="Nominal" required>
+<select id="kategori">
+<option>Cash In</option><option>Cash Out</option>
+<option>Gopay In</option><option>Gopay Out</option>
+<option>Gopay Transport In</option><option>Gopay Transport Out</option>
+</select>
+<input type="text" id="deskripsi" placeholder="Deskripsi">
+<button>Simpan</button>
+</form>
+</div>
+
+<div class="card">
+<h2>Ringkasan</h2>
+<div class="summary-main">
+<div>Total Pemasukan<br><b class="in" id="totalIn">Rp0</b></div>
+<div>Total Pengeluaran<br><b class="out" id="totalOut">Rp0</b></div>
+<div>Saldo Total<br><b id="saldoTotal">Rp0</b></div>
+</div>
+<div class="summary-sub">
+<div>Saldo Cash<br><b id="saldoCash">Rp0</b></div>
+<div>Saldo Gopay<br><b id="saldoGopay">Rp0</b></div>
+<div>Saldo Transport<br><b id="saldoTransport">Rp0</b></div>
+</div>
+</div>
+
+<div class="card">
+<h2>Grafik Pengeluaran per Kategori</h2>
+<canvas id="chart"></canvas>
+</div>
+
+<div class="card">
+<h2>History & Export</h2>
+<select id="bulanSelect"></select>
+<button onclick="exportCSV()">Export Spreadsheet</button>
+<table>
+<thead><tr>
+<th>Tanggal</th>
+<th>Nominal</th>
+<th>Kategori</th>
+<th>Deskripsi</th>
+<th>Aksi</th>
+</tr></thead>
+<tbody id="history"></tbody>
+</table>
+</div>
+
+</main>
+
+<script>
+function getMonth(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')}
+let allData=JSON.parse(localStorage.getItem('financeData'))||{};
+let currentMonth=getMonth();
+if(!allData[currentMonth]) allData[currentMonth]=[];
+
+const bulanSelect=document.getElementById('bulanSelect');
+function loadMonths(){bulanSelect.innerHTML='';Object.keys(allData).sort().forEach(b=>{const o=document.createElement('option');o.value=b;o.textContent=b;bulanSelect.appendChild(o)});bulanSelect.value=currentMonth}
+
+let chart;
+function render(){
+const data=allData[currentMonth];
+const tbody=document.getElementById('history');tbody.innerHTML='';
+let totalIn=0,totalOut=0;
+let saldoCash=0,saldoGopay=0,saldoTransport=0;
+let kategoriOut={};
+
+data.forEach((d, index)=>{
+const tr=document.createElement('tr');
+tr.innerHTML=`
+<td>${d.tanggal}</td>
+<td>Rp${d.nominal}</td>
+<td>${d.kategori}</td>
+<td>${d.deskripsi}</td>
+<td>
+  <button onclick="hapusItem(${index})">❌</button>
+</td>
+`;
+tbody.appendChild(tr);
+
+if(d.kategori.includes('Cash')) d.kategori.includes('Out')?saldoCash-=d.nominal:saldoCash+=d.nominal;
+if(d.kategori.includes('Gopay Transport')) d.kategori.includes('Out')?saldoTransport-=d.nominal:saldoTransport+=d.nominal;
+if(d.kategori.includes('Gopay')&&!d.kategori.includes('Transport')) d.kategori.includes('Out')?saldoGopay-=d.nominal:saldoGopay+=d.nominal;
+
+if(d.kategori.includes('Out')){
+ totalOut+=d.nominal;
+ kategoriOut[d.kategori]=(kategoriOut[d.kategori]||0)+d.nominal;
+}else totalIn+=d.nominal;
+});
+
+document.getElementById('totalIn').innerText='Rp'+totalIn;
+document.getElementById('totalOut').innerText='Rp'+totalOut;
+document.getElementById('saldoTotal').innerText='Rp'+(totalIn-totalOut);
+document.getElementById('saldoCash').innerText='Rp'+saldoCash;
+document.getElementById('saldoGopay').innerText='Rp'+saldoGopay;
+document.getElementById('saldoTransport').innerText='Rp'+saldoTransport;
+
+if(chart) chart.destroy();
+chart=new Chart(document.getElementById('chart'),{
+ type:'pie',
+ data:{labels:Object.keys(kategoriOut),datasets:[{data:Object.values(kategoriOut)}]}
+});
+}
+
+bulanSelect.addEventListener('change',()=>{currentMonth=bulanSelect.value;render()});
+
+document.getElementById('financeForm').addEventListener('submit',e=>{
+e.preventDefault();
+allData[currentMonth].push({tanggal:tanggal.value,nominal:Number(nominal.value),kategori:kategori.value,deskripsi:deskripsi.value});
+localStorage.setItem('financeData',JSON.stringify(allData));
+e.target.reset();render();loadMonths();});
+
+function exportCSV(){
+let csv='Tanggal,Nominal,Kategori,Deskripsi\n';
+allData[currentMonth].forEach(d=>csv+=`${d.tanggal},${d.nominal},${d.kategori},${d.deskripsi}\n`);
+const blob=new Blob([csv],{type:'text/csv'});
+const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='keuangan_'+currentMonth+'.csv';a.click();}
+
+loadMonths();render();
+function hapusItem(index){
+  if(!confirm("Hapus data ini?")) return;
+
+  allData[currentMonth].splice(index, 1);
+  localStorage.setItem('financeData', JSON.stringify(allData));
+  render();
+}
+
+
+</script>
+</body>
+</html>
