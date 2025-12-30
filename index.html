@@ -11,6 +11,7 @@
 *{box-sizing:border-box;font-family:Inter,Segoe UI,Arial}
 body{margin:0;background:#0d0d0d;color:#fff}
 header{background:var(--grad);padding:16px 24px;box-shadow:0 4px 20px rgba(0,0,0,.5);position:sticky;top:0;z-index:1000}
+headers: { "Content-Type": "application/json" }
 header h1{margin:0;font-size:20px}
 main{padding:24px;max-width:1200px;margin:auto}
 .card{background:#161616;border-radius:14px;padding:20px;margin-bottom:20px;box-shadow:0 10px 30px rgba(0,0,0,.4)}
@@ -89,7 +90,7 @@ th,td{padding:10px;border-bottom:1px solid #333;font-size:14px}
 </main>
 
 <script>
-const API = "https://script.google.com/macros/s/AKfycbxfBh2z29bUTda8sZtoxho6qrs_me0W0T3pVciHz9FoG7pFhr2akt84VV-s4w15eYPS/exec";
+const API = "https://script.google.com/macros/s/AKfycbyxg52cKccawIYnZaizBLgxD_OizjAOWYtJGFPTx4zF48Eq0wS8D_rDpTeTNxE_I5Bf/exec";
 let allData = [];
 let chart;
 
@@ -147,19 +148,26 @@ function render(){
 
 document.getElementById('financeForm').addEventListener('submit',e=>{
   e.preventDefault();
-  fetch(API,{
-    method:'POST',
-    body:JSON.stringify({
-      tanggal:tanggal.value,
-      nominal:Number(nominal.value),
-      kategori:kategori.value,
-      deskripsi:deskripsi.value
-    })
-  }).then(()=>{
-    e.target.reset();
-    loadData();
-  });
-});
+  fetch(API, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    action: "add",
+    tanggal: tanggal.value,
+    nominal: Number(nominal.value),
+    kategori: kategori.value,
+    deskripsi: deskripsi.value
+  })
+})
+.then(res => res.json())
+.then(() => {
+  e.target.reset();
+  loadData();
+})
+.catch(err => alert("Gagal menyimpan: " + err));
+
 
 function hapusItem(index){
   if(!confirm("Hapus data ini?")) return;
@@ -172,3 +180,4 @@ loadData();
 
 </body>
 </html>
+
