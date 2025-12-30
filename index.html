@@ -90,6 +90,10 @@ th,td{padding:10px;border-bottom:1px solid #333;font-size:14px}
 
 <script>
 const API = "https://script.google.com/macros/s/AKfycbwYWjQ1HXIOleQrAZiJdGdMaZa2HLRrI-ISwTKWlXT9AC8wvBbXDCpPEkVEjM9shkFh/exec";
+
+const financeForm = document.getElementById("financeForm");
+const tbody = document.getElementById("history");
+
 let allData = [];
 let chart;
 
@@ -103,13 +107,12 @@ function loadData(){
 }
 
 function render(){
-  const tbody = document.getElementById("history");
   tbody.innerHTML = "";
 
-  let tIn=0,tOut=0,cash=0,gopay=0,trans=0;
-  let catOut={};
+  let tIn=0, tOut=0, cash=0, gopay=0, trans=0;
+  let catOut = {};
 
-  allData.forEach(d=>{
+  allData.forEach(d => {
     tbody.innerHTML += `
       <tr>
         <td>${d.tanggal}</td>
@@ -120,54 +123,60 @@ function render(){
       </tr>`;
 
     if(d.kategori.includes("Out")){
-      tOut+=d.nominal;
-      catOut[d.kategori]=(catOut[d.kategori]||0)+d.nominal;
-    } else tIn+=d.nominal;
+      tOut += d.nominal;
+      catOut[d.kategori] = (catOut[d.kategori] || 0) + d.nominal;
+    } else {
+      tIn += d.nominal;
+    }
 
-    if(d.kategori.includes("Cash")) d.kategori.includes("Out")?cash-=d.nominal:cash+=d.nominal;
-    if(d.kategori.includes("Gopay Transport")) d.kategori.includes("Out")?trans-=d.nominal:trans+=d.nominal;
-    if(d.kategori.includes("Gopay")&&!d.kategori.includes("Transport")) d.kategori.includes("Out")?gopay-=d.nominal:gopay+=d.nominal;
+    if(d.kategori.includes("Cash")) d.kategori.includes("Out") ? cash-=d.nominal : cash+=d.nominal;
+    if(d.kategori.includes("Gopay Transport")) d.kategori.includes("Out") ? trans-=d.nominal : trans+=d.nominal;
+    if(d.kategori.includes("Gopay") && !d.kategori.includes("Transport")) d.kategori.includes("Out") ? gopay-=d.nominal : gopay+=d.nominal;
   });
 
-  totalIn.innerText="Rp"+tIn;
-  totalOut.innerText="Rp"+tOut;
-  saldoTotal.innerText="Rp"+(tIn-tOut);
-  saldoCash.innerText="Rp"+cash;
-  saldoGopay.innerText="Rp"+gopay;
-  saldoTransport.innerText="Rp"+trans;
+  document.getElementById("totalIn").innerText = "Rp" + tIn;
+  document.getElementById("totalOut").innerText = "Rp" + tOut;
+  document.getElementById("saldoTotal").innerText = "Rp" + (tIn - tOut);
+  document.getElementById("saldoCash").innerText = "Rp" + cash;
+  document.getElementById("saldoGopay").innerText = "Rp" + gopay;
+  document.getElementById("saldoTransport").innerText = "Rp" + trans;
 
   if(chart) chart.destroy();
-  chart=new Chart(document.getElementById("chart"),{
+  chart = new Chart(document.getElementById("chart"),{
     type:"pie",
-    data:{labels:Object.keys(catOut),datasets:[{data:Object.values(catOut)}]}
+    data:{labels:Object.keys(catOut), datasets:[{data:Object.values(catOut)}]}
   });
 }
 
-financeForm.addEventListener("submit",e=>{
+financeForm.addEventListener("submit", e => {
   e.preventDefault();
+
   fetch(API,{
     method:"POST",
     headers:{"Content-Type":"application/json"},
     body:JSON.stringify({
       action:"add",
-      tanggal:tanggal.value,
-      nominal:+nominal.value,
-      kategori:kategori.value,
-      deskripsi:deskripsi.value,
-      bulan:new Date().toISOString().slice(0,7)
+      tanggal: tanggal.value,
+      nominal: Number(nominal.value),
+      kategori: kategori.value,
+      deskripsi: deskripsi.value,
+      bulan: new Date().toISOString().slice(0,7)
     })
-  }).then(()=>{
-    e.target.reset();
+  })
+  .then(r => r.json())
+  .then(() => {
+    financeForm.reset();
     loadData();
   });
 });
 
 function hapusItem(id){
   if(!confirm("Hapus data ini?")) return;
+
   fetch(API,{
     method:"POST",
     headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({action:"delete",id})
+    body:JSON.stringify({action:"delete", id})
   }).then(loadData);
 }
 
@@ -175,8 +184,10 @@ loadData();
 </script>
 
 
+
 </body>
 </html>
+
 
 
 
